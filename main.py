@@ -29,7 +29,7 @@ class Room:
         self.code = initial_code or self.get_initial_template(language)
         self.version = 0
         self.participants_count = 0
-        self.max_participants = 2
+        self.max_participants = 5
         self.created_at = datetime.now()
         self.expires_at = datetime.now() + timedelta(hours=24)
         self.participants: Dict[str, 'Participant'] = {}
@@ -238,7 +238,7 @@ def join_room(room_code: str, request: JoinRoomRequest):
     if room.participants_count >= room.max_participants:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail={"error": "ROOM_FULL", "message": "Room is full. Maximum 2 participants allowed."}
+            detail={"error": "ROOM_FULL", "message": "Room is full. Maximum 5 participants allowed."}
         )
     
     # Generate participant ID
@@ -517,6 +517,7 @@ async def websocket_endpoint(websocket: WebSocket, room_code: str):
                 "clientId": client_id,
                 "participantCount": room.participants_count
             })
+            
 
 
 # ==================== RUN SERVER ====================
