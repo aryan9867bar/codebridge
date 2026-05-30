@@ -4,29 +4,23 @@ A real-time, two-person collaborative coding backend built with **FastAPI** and 
 
 ---
 
-## Table of Contents
+## Overview
 
-1. [Features](#features)
-2. [Architecture Overview](#architecture-overview)
-3. [Prerequisites](#prerequisites)
-4. [Local Setup (Step-by-Step)](#local-setup-step-by-step)
-5. [Running the Server](#running-the-server)
-6. [API Reference](#api-reference)
-7. [WebSocket Protocol](#websocket-protocol)
-8. [Testing the API](#testing-the-api)
-9. [Deploying to Render](#deploying-to-render)
-10. [Known Limitations & Roadmap](#known-limitations--roadmap)
+CodeBridge API is the backend for a two-person collaborative coding environment. It manages ephemeral coding rooms, synchronises code edits across participants in real time over WebSockets, and executes Python snippets server-side — returning stdout, stderr, exit code, and timing.
+
+All state is held in memory. There is no database; rooms vanish on server restart and auto-clean after 24 hours or when the last participant disconnects.
 
 ---
 
 ## Features
 
-- 🚪 **Room management** — create/join/leave ephemeral rooms with 6-character codes
-- 🔄 **Real-time sync** — WebSocket-based code broadcasting between participants
-- 🖱️ **Cursor sharing** — broadcast cursor position and text selection to peers
-- ▶️ **Code execution** — run Python snippets server-side (stdout/stderr/exit code returned)
-- ⏳ **Auto-expiry** — rooms expire after 24 hours; empty rooms are cleaned up immediately
-- 🌐 **CORS-ready** — open CORS by default (lock it down before going to production)
+- **Room management** — create/join/leave ephemeral rooms with 6-character codes
+- **Real-time sync** — WebSocket-based code broadcasting between participants
+- **Cursor sharing** — broadcast cursor position and text selection to peers
+- **Code execution** — run Python snippets server-side (stdout/stderr/exit code returned)
+- **Auto-expiry** — rooms expire after 24 hours; empty rooms are cleaned up immediately
+- **CORS-ready** — open CORS by default (lock it down before going to production)
+- **Zero-dependency state** — pure Python `dict`, no Redis, no DB, no external services
 
 ---
 
@@ -37,18 +31,32 @@ Client A  ──────┐
                 ├──► POST /rooms/{code}/join
                 │
                 ├──► WS  /ws/rooms/{code}  ◄──────────────────┐
-                │         │                                     │
-                │    [INIT → STATE]                             │
-                │    [EDIT → PATCH broadcast] ─────────────►   │
-                │    [CURSOR broadcast]       ─────────────►   │
-                │    [PING / PONG]                              │
-                │                                               │
+                │         │                                   │
+                │    [INIT → STATE]                           │
+                │    [EDIT → PATCH broadcast] ─────────────►  │
+                │    [CURSOR broadcast]       ─────────────►  │
+                │    [PING / PONG]                            │
+                │                                             │
 Client B  ──────┘                                    Client B connects
 ```
 
 All state is held in a Python dict (`rooms: Dict[str, Room]`). There is **no database** — a server restart clears all rooms.
 
 ---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Framework | FastAPI |
+| ASGI server | Uvicorn |
+| Real-time transport | WebSockets (native + `websockets` library) |
+| Validation | Pydantic v2 |
+| Deployment | Render (free tier) |
+
+---
+
+## Getting Started
 
 ## Prerequisites
 
@@ -67,8 +75,8 @@ All state is held in a Python dict (`rooms: Dict[str, Room]`). There is **no dat
 ### Step 1 — Clone the repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/code-sync-render.git
-cd code-sync-render
+git clone https://github.com/aryan9867bar/codebridge
+cd codebridge
 ```
 
 ### Step 2 — Create a virtual environment
@@ -411,12 +419,11 @@ app.add_middleware(
 | **Single worker** | Cannot scale horizontally. Use Redis pub/sub to share state across workers. |
 | **Python-only execution** | The `run` endpoint only supports Python. Use subprocess sandboxing for other languages. |
 | **No auth** | Anyone with a room code can join. Add JWT or API key auth for production. |
-| **Max 2 participants** | Hardcoded. Change `max_participants` in the `Room` class to increase. |
+| **Max 5 participants** | Hardcoded. Change `max_participants` in the `Room` class to increase. |
 | **No OT/CRDT** | Concurrent edits use last-write-wins. Consider `yjs` or operational transforms for true conflict-free editing. |
 
 ---
 
-## Bug Fixes Applied
+## License
 
-- **`leave_room` now correctly decrements `participants_count`** — the original code deleted the participant record but forgot to decrement the counter, causing rooms to permanently appear full after any participant left.
-- **Dependency versions pinned** — `requirements.txt` now uses fixed version numbers to ensure reproducible installs.
+MIT
